@@ -2,6 +2,9 @@
 
 A beautiful, professional web-based application that leverages artificial intelligence to detect defects in Printed Circuit Boards (PCBs). The application allows users to upload images or capture them in real-time via their webcam or external camera, analyzes them using a custom Roboflow model, and highlights missing holes, shorts, or other defects with extreme precision.
 
+## Example Output
+
+![Annotated PCB showing detected defects](output_annotated.jpg)
 ## Features
 
 - **AI-Powered Analysis**: Instantly detects and highlights PCB defects using a computer vision model powered by the Roboflow Inference API.
