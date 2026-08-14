@@ -93,6 +93,7 @@
             margin-bottom: 0.5rem;
             background: linear-gradient(to right, var(--primary-color), #8b5cf6);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -513,7 +514,7 @@
                 </select>
             </div>
             <div class="video-container">
-                <video id="camera-video" autoplay playsinline></video>
+                <video id="camera-video" autoplay playsinline muted></video>
             </div>
             <button class="primary-btn" onclick="captureImage()">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -681,6 +682,7 @@
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = currentStream;
+                await videoElement.play().catch(e => console.error("Video play error", e));
             } catch (err) {
                 console.error("Error starting camera", err);
             }
@@ -697,14 +699,20 @@
         function captureImage() {
             if (!currentStream) return;
             
-            // Create a temporary canvas to get the video frame
+            // Show UI updates immediately
+            resultSection.style.display = 'block';
+            setStatus('loading', '<div class="loader"></div> Analyzing PCB...');
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+
+            // Create a temporary canvas to get the full resolution video frame
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = videoElement.videoWidth;
             tempCanvas.height = videoElement.videoHeight;
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            const base64Data = tempCanvas.toDataURL('image/jpeg').split(',')[1];
+            // Keep full resolution for accurate PCB defect detection
+            const base64Data = tempCanvas.toDataURL('image/jpeg', 0.9).split(',')[1];
             
             const img = new Image();
             img.onload = () => {
@@ -714,13 +722,6 @@
                 detectDefects(base64Data, img);
             };
             img.src = 'data:image/jpeg;base64,' + base64Data;
-            
-            // Show UI updates
-            resultSection.style.display = 'block';
-            setStatus('loading', '<div class="loader"></div> Analyzing PCB...');
-            
-            // Scroll to results
-            resultSection.scrollIntoView({ behavior: 'smooth' });
         }
 
 
@@ -776,6 +777,7 @@
                     canvas.height = img.height;
                     ctx.drawImage(img, 0, 0);
                     
+                    // Send full resolution original image for accurate AI detection
                     const base64Data = e.target.result.split(',')[1];
                     detectDefects(base64Data, img);
                 };
@@ -785,7 +787,12 @@
         }
 
         async function detectDefects(base64Image, imgElement) {
-            const uploadURL = `https://detect.roboflow.com/${MODEL_ENDPOINT}?api_key=${API_KEY}`;
+            // Use Vercel proxy if deployed on Vercel to bypass CORS, otherwise use direct URL
+            const baseURL = window.location.hostname.includes('vercel.app') 
+                ? '/api/roboflow' 
+                : 'https://detect.roboflow.com';
+                
+            const uploadURL = `${baseURL}/${MODEL_ENDPOINT}?api_key=${API_KEY}`;
             
             try {
                 const response = await fetch(uploadURL, {
