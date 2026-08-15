@@ -625,8 +625,8 @@
         // Camera Initialization & Enumeration
         async function initCameraSystem() {
             try {
-                // Request initial permission to enumerate devices with labels
-                await navigator.mediaDevices.getUserMedia({ video: true });
+                // Request initial permission to enumerate devices with labels, prefer back camera
+                await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 enumerateCameras();
             } catch (err) {
                 console.error("Camera access denied", err);
@@ -645,6 +645,8 @@
                 return;
             }
             
+            let defaultDeviceId = null;
+            
             videoDevices.forEach((device, index) => {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
@@ -654,8 +656,11 @@
                 let type = "External Cam";
                 const labelLower = label.toLowerCase();
                 
-                if (labelLower.includes('internal') || labelLower.includes('integrated') || labelLower.includes('webcam') || labelLower.includes('facetime') || labelLower.includes('front')) {
-                    type = "Webcam (Internal)";
+                if (labelLower.includes('back') || labelLower.includes('rear') || labelLower.includes('environment')) {
+                    type = "Back Camera";
+                    if (!defaultDeviceId) defaultDeviceId = device.deviceId;
+                } else if (labelLower.includes('internal') || labelLower.includes('integrated') || labelLower.includes('webcam') || labelLower.includes('facetime') || labelLower.includes('front')) {
+                    type = "Front/Webcam";
                 } else if (labelLower.includes('usb') || labelLower.includes('external')) {
                     type = "External Cam";
                 }
@@ -663,6 +668,10 @@
                 option.text = `[${type}] ${label}`;
                 cameraSelect.appendChild(option);
             });
+            
+            if (defaultDeviceId) {
+                cameraSelect.value = defaultDeviceId;
+            }
             
             startCamera();
         }
@@ -685,6 +694,14 @@
                 await videoElement.play().catch(e => console.error("Video play error", e));
             } catch (err) {
                 console.error("Error starting camera", err);
+                // Fallback without resolution constraints
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
+                    videoElement.srcObject = currentStream;
+                    await videoElement.play().catch(e => console.error("Video play error", e));
+                } catch(e) {
+                    console.error("Fallback camera start failed", e);
+                }
             }
         }
 

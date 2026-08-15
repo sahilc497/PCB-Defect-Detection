@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/roboflow/:match*",
+      "destination": "https://detect.roboflow.com/:match*"
+    }
+  ]
+}
