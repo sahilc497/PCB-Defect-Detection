@@ -1,5 +1,7 @@
 # PCB Defect Detection AI
 
+🚀 **Live Demo:** [https://sweet-dasik-71d38f.netlify.app/](https://sweet-dasik-71d38f.netlify.app/)
+
 A beautiful, professional web-based application that leverages artificial intelligence to detect defects in Printed Circuit Boards (PCBs). The application allows users to upload images or capture them in real-time via their webcam or external camera, analyzes them using a custom Roboflow model, and highlights missing holes, shorts, or other defects with extreme precision.
 
 ## Example Output
